@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock Price Watcher</title>
+  <style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 5px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stock Price Watcher</h1>
+  Alpha Vantage Stock API. 20 API calls a day with Free tier
+  <div>
+    <h2>FATE</h2>
+    <p id="fate">FATE: Loading...</p>
+    <table id="fate-history">
+      <tr><th>Last 10 Price Changes</th></tr>
+    </table>
+  </div>
+
+  <div>
+    <h2>PMN</h2>
+    <p id="pmn">PMN: Loading...</p>
+    <table id="pmn-history">
+      <tr><th>Last 10 Price Changes</th></tr>
+    </table>
+  </div>
+
+  <div>
+    <h2>LODE</h2>
+    <p id="lode">LODE: Loading...</p>
+    <table id="lode-history">
+      <tr><th>Last 10 Price Changes</th></tr>
+    </table>
+  </div>
+
+  <script>
+    // Function to fetch stock price
+    function fetchStockPrice(symbol) {
+      fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=KPPYRFSQ05ZDXIXI`)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+          const stockPrice = data['Global Quote']['05. price'];
+          document.getElementById(symbol.toLowerCase()).textContent = `${symbol}: ${stockPrice}`;
+          updatePriceHistory(symbol, stockPrice);
+          checkTargetPrice(symbol, stockPrice);
+        })
+        .catch(error => {
+          console.error('Error fetching stock price:', error);
+        });
+    }
+
+    // Price history object
+    const priceHistories = {
+      'FATE': [],
+      'PMN': [],
+      'LODE': []
+    };
+
+    // Function to update price history
+    function updatePriceHistory(symbol, price) {
+      let history = priceHistories[symbol];
+      history.unshift(price); // Add new price to the beginning
+      if (history.length > 10) {
+        history.pop(); // Remove the oldest price if more than 10
+      }
+      displayPriceHistory(symbol, history);
+    }
+
+    // Function to display price history in the table
+    function displayPriceHistory(symbol, history) {
+      const table = document.getElementById(`${symbol.toLowerCase()}-history`);
+      let rows = '<tr><th>Last 10 Price Changes</th></tr>';
+      history.forEach(price => {
+        rows += `<tr><td>${price}</td></tr>`;
+      });
+      table.innerHTML = rows;
+    }
+
+    // Watchers for stock prices
+    const watchers = {};
+
+    // Function to create a watcher
+    function createWatcher(symbol, targetPrice) {
+      watchers[symbol] = { targetPrice };
+    }
+
+    // Function to check target price
+    function checkTargetPrice(symbol, currentPrice) {
+      if (watchers[symbol] && currentPrice >= watchers[symbol].targetPrice) {
+        showNotification(`${symbol} has reached the target price of ${watchers[symbol].targetPrice}`);
+        delete watchers[symbol]; // Remove the watcher after notification
+      }
+    }
+
+    // Function to show notifications
+    function showNotification(message) {
+      if (!("Notification" in window)) {
+        alert("This browser does not support desktop notification");
+      } else if (Notification.permission === "granted") {
+        new Notification(message);
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification(message);
+          }
+        });
+      }
+    }
+
+    // Initialize API call for each stock every minute
+    ['FATE', 'PMN', 'LODE'].forEach(symbol => {
+      fetchStockPrice(symbol);
+      setInterval(() => fetchStockPrice(symbol), 60000);
+    });
+
+    // Example usage of createWatcher
+    createWatcher('FATE', 10.00); // Set a target price for FATE
+    createWatcher('PMN', 5.00); // Set a target price for PMN
+    createWatcher('LODE', 3.00); // Set a target price for LODE
+  </script>
+</body>
+</html>
