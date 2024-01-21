@@ -79,7 +79,7 @@
       const table = document.getElementById(`${symbol.toLowerCase()}-history`);
       let rows = '<tr><th>Last 10 Price Changes</th></tr>';
       history.forEach(price => {
-        rows += `<tr><td>${price}</td></tr>`;
+        rows += `<tr><td>${price}</td><td>${new Date}</td></tr>`;
       });
       table.innerHTML = rows;
     }
